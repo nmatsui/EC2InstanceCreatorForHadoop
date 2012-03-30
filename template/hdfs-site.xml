@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>dfs.http.address</name>
+    <value>0.0.0.0:50070</value>
+  </property>
+  <property>
+    <name>dfs.name.dir</name>
+    <value>/mnt/hadoop/dfs/name</value>
+  </property>
+  <property>
+    <name>dfs.data.dir</name>
+    <value>/mnt/hadoop/dfs/data</value>
+  </property> 
+  <property>
+    <name>fs.checkpoint.dir</name>
+    <value>/mnt/hadoop/dfs/namesecondary</value>
+  </property> 
+</configuration>

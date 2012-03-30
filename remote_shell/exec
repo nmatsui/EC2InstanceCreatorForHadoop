@@ -1,0 +1,90 @@
+#!/bin/sh
+
+BASE_DIR="/mnt/hadoop/script"
+JOB_DATETIME=`date '+%Y%m%d-%H%M%S'`
+PID_FILE=$BASE_DIR/sar.pid
+EXEC_SAR=$BASE_DIR/exec_sar.sh
+SAR_DIR=$BASE_DIR/sar
+RESULT_DIR=$BASE_DIR/result
+USER="hadoop"
+
+HADOOP_CMD=/usr/local/hadoop/bin/hadoop
+JOB_JAR=$BASE_DIR/jar/crm_labo_gz.jar
+JOB_CLASS=tc.hadoop.crm.job.AggregatorJob
+INPUT_DIR=$BASE_DIR/input
+HADOOP_INPUT_DIR=/user/$USER/input
+HADOOP_OUTPUT_DIR=/user/$USER/output
+
+if [ -d  $RESULT_DIR ]; then
+  rm -rf $RESULT_DIR
+fi
+mkdir $RESULT_DIR
+
+USER="hadoop"
+
+SLAVES=`cat /usr/local/hadoop/conf/slaves`
+MASTER=`cat /usr/local/hadoop/conf/masters`
+
+
+echo "*** copy input data to hdfs ***"
+$HADOOP_CMD fs -put $INPUT_DIR $HADOOP_INPUT_DIR
+
+echo "*** start sar ***"
+for SLAVE in ${SLAVES[@]}; do
+  ssh $USER@$SLAVE rm -rf $BASE_DIR
+  ssh $USER@$SLAVE mkdir $BASE_DIR
+  scp $EXEC_SAR $USER@$SLAVE:$BASE_DIR
+  ssh $USER@$SLAVE chmod 755 $EXEC_SAR
+done
+
+HOSTS=(${SLAVES[@]} $MASTER)
+
+if [ -e $PID_FILE ]; then
+  chmod 600 $PID_FILE
+  rm $PID_FILE
+fi
+
+for HOST in ${HOSTS[@]}; do
+  NAME="sar-$HOST-$JOB_DATETIME.bin"
+  PID=`ssh $USER@$HOST $EXEC_SAR start $NAME`
+  echo "start sar at $HOST ($PID)"
+  echo $HOST $PID >> $PID_FILE
+done
+chmod 400 $PID_FILE
+
+echo "*** start job ***"
+$HADOOP_CMD jar $JOB_JAR $JOB_CLASS $HADOOP_INPUT_DIR $HADOOP_OUTPUT_DIR
+
+echo "*** stop sar ***"
+HOST_ARR=()
+PID_ARR=()
+while read line; do
+  HOST=`echo $line | cut -d " " -f1`
+  HOST_ARR=("${HOST_ARR[@]}" $HOST)
+  PID=`echo $line | cut -d " " -f2`
+  PID_ARR=("${PID_ARR[@]}" $PID)
+done < $PID_FILE
+
+CNT=0
+for NIL in ${HOSTS[@]}; do
+  ssh $USER@${HOST_ARR[$CNT]} $EXEC_SAR stop ${PID_ARR[$CNT]}
+  scp $USER@${HOST_ARR[$CNT]}:$SAR_DIR/sar-${HOST_ARR[$CNT]}-$JOB_DATETIME.bin $RESULT_DIR
+  CNT=$(( ${CNT} + 1 ))
+done
+
+chmod 600 $PID_FILE
+rm $PID_FILE
+
+echo "*** collect result ***"
+
+cp -r /mnt/hadoop/logs/history/done $RESULT_DIR
+cp -r /usr/local/hadoop/conf $RESULT_DIR
+
+echo "*** put result to s3 ***"
+tar cvfj $BASE_DIR/result-$JOB_DATETIME.tar.bz2 $RESULT_DIR
+s3cmd put $BASE_DIR/result-$JOB_DATETIME.tar.bz2 s3://tc-hadoop/data/matsui/output/
+
+echo "*** shutdown cluster ***"
+/home/hadoop/bin/shutdown-cluster.rb
+
+

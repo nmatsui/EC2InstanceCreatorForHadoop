@@ -1,0 +1,15 @@
+#!/bin/sh
+
+SCALA_HOME=PATH_TO_SCALA
+
+LIB_DIR=`pwd`/../lib
+DEST_DIR=`pwd`/../dest
+
+SCALA_CMD=$SCALA_HOME/bin/scala
+
+CP=$CLASSPATH
+for JAR in `ls $LIB_DIR/*.jar $DEST_DIR/*.jar`; do
+  CP=$JAR:$CP
+done
+
+$SCALA_CMD -cp $CP $@

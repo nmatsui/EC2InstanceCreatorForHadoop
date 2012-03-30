@@ -1,0 +1,12 @@
+#!/bin/sh
+
+AMI="ami-aea5dbfc"
+TYPE="m1.large"
+GROUP="HadoopSegment"
+PEM_NAME="EC2_Hadoop"
+PEM_FILE="$REMOTE_DIR/pem/$PEM_NAME.pem"
+TEMPLATE_DIR="$REMOTE_DIR/template"
+
+MAIN_CLASS="tc.aws.main.CreateHadoopVM"
+
+`pwd`/exec $MAIN_CLASS $0 $AMI $TYPE $GROUP $PEM_NAME $PEM_FILE $TEMPLATE_DIR $@

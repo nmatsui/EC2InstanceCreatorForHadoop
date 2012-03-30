@@ -1,0 +1,5 @@
+#!/bin/sh
+
+MAIN_CLASS="tc.aws.main.ShowAMIList"
+
+`pwd`/exec $MAIN_CLASS $0 $@

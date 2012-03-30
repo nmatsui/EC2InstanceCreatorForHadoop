@@ -1,0 +1,75 @@
+<project name="create_hadoop_vm" default="all" basedir=".">
+  <property name="scala.home" value="PATH_TO_SCALA"/> 
+  <property name="scala.deprecation" value="true"/>
+  <property name="lib.dir" value="../lib"/>
+  <property name="dest.dir" value="../dest"/>
+  <property name="src.base" value="../src"/>
+  <property name="build.base" value="."/>
+  <property name="wrapper.src.dir" value="${src.base}/wrapper"/>
+  <property name="wrapper.build.dir" value="${build.base}/wrapper"/>
+  <property name="wrapper.jar.name" value="${dest.dir}/ec2_ssh_wrapper.jar"/>
+  <property name="main.src.dir" value="${src.base}/main"/>
+  <property name="main.build.dir" value="${build.base}/main"/>
+  <property name="main.jar.name" value="${dest.dir}/ec2_hadoop.jar"/>
+
+  <target name="all" depends="wrapper, main"/>
+  <target name="wrapper" depends="wrapper.build, wrapper.jar"/>
+  <target name="main" depends="main.build, main.jar"/>
+
+  <target name="init">
+    <property
+      name="scala-library.jar"
+      value="${scala.home}/lib/scala-library.jar"
+    />
+    <path id="wrapper.build.classpath">
+      <pathelement location="${scala-library.jar}"/>
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+    </path>
+    <path id="main.build.classpath">
+      <pathelement location="${scala-library.jar}"/>
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+      <pathelement location="${wrapper.jar.name}"/>
+    </path>
+    <taskdef resource="scala/tools/ant/antlib.xml">
+      <classpath>
+        <pathelement location="${scala.home}/lib/scala-compiler.jar"/>
+        <pathelement location="${scala-library.jar}"   />
+      </classpath>
+    </taskdef>
+  </target>
+
+  <target name="wrapper.build" depends="init">
+    <delete dir="${wrapper.build.dir}"/>
+    <mkdir dir="${wrapper.build.dir}"/>
+    <fsc srcdir="${wrapper.src.dir}"
+         destdir="${wrapper.build.dir}"
+         deprecation="${scala.deprecation}"
+         classpathref="wrapper.build.classpath">
+    </fsc>
+  </target>
+
+  <target name="wrapper.jar">
+    <delete file="${wrapper.jar.name}"/>
+    <jar basedir="${wrapper.build.dir}" jarfile="${wrapper.jar.name}"/>
+  </target>
+
+  <target name="main.build" depends="init">
+    <delete dir="${main.bild.dir}"/>
+    <mkdir dir="${main.build.dir}"/>
+    <fsc srcdir="${main.src.dir}"
+         destdir="${main.build.dir}"
+         deprecation="${scala.deprecation}"
+         classpathref="main.build.classpath">
+    </fsc>
+  </target>
+
+  <target name="main.jar">
+    <delete file="${main.jar.name}"/>
+    <jar basedir="${main.build.dir}" jarfile="${main.jar.name}"/>
+  </target>
+</project>
+
